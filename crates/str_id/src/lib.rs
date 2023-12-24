@@ -70,18 +70,18 @@ macro_rules! newtype_str_id {
         
         #[derive(Debug)]
         #[repr(transparent)]
-        $vis struct $name<T>($crate::util::StrId<T>);
+        $vis struct $name<T>($crate::StrId<T>);
 
         impl<T> $name<T> {
 
-            pub const EMPTY: Self = Self($crate::util::StrId::<T>::EMPTY);
+            pub const EMPTY: Self = Self($crate::StrId::<T>::EMPTY);
 
             $vis const fn from_name(id: &str) -> Self {
-                Self($crate::util::StrId::from_name(id))
+                Self($crate::StrId::from_name(id))
             }
 
             $vis const fn from_raw(id: u128) -> Self {
-                Self($crate::util::StrId::from_raw(id))
+                Self($crate::StrId::from_raw(id))
             }
 
             $vis fn to_str(&self) -> String {
