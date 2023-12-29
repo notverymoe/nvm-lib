@@ -1,14 +1,20 @@
 // Copyright 2023 Natalie Baker // AGPLv3 //
 
-use std::fmt::{Display, Debug};
+use std::{fmt::{Display, Debug}, num::NonZeroU128};
 
-#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct SmolStr(u128);
+pub struct SmolStr(NonZeroU128);
+
+impl Default for SmolStr {
+    fn default() -> Self {
+        Self::EMPTY
+    }
+}
 
 impl SmolStr {
 
-    pub const EMPTY: Self = Self(0);
+    pub const EMPTY: Self = Self(NonZeroU128::MIN);
 
     pub const fn new(str: &str) -> Self {
         match Self::try_new(str) {
@@ -19,7 +25,11 @@ impl SmolStr {
 
     pub const fn from_raw(value: u128) -> Self {
         // TODO verify correctness
-        Self(value)
+        if let Some(value) = NonZeroU128::new((value << 1) | 1) {
+            Self(value)
+        } else {
+            panic!("Failed to construct NonZeroU128 for result");
+        }
     }
 
     pub const fn try_new(str: &str) -> Result<Self, &'static str> {
@@ -53,17 +63,18 @@ impl SmolStr {
             if i >= str.len() { break; }
         }
 
-        Ok(Self(value))
+        Ok(Self::from_raw(value))
     }
 
     pub fn to_raw(self) -> u128 {
-        self.0
+        self.0.get() >> 1
     }
 
     pub fn to_str(self) -> String {
         let mut result = String::new();
+        let value = self.to_raw();
         for offset in (0..=120).step_by(5) {
-            let ch = ((self.0 >> offset) & 0b11111) as u8;
+            let ch = ((value >> offset) & 0b11111) as u8;
             if ch == 0 { break; }
             result.push((if ch < 27 { ch + b'A' - 1 } else { b'_' }).into());
         }
@@ -87,6 +98,11 @@ impl Display for SmolStr {
 #[cfg(test)]
 mod test {
     use crate::SmolStr;
+
+    #[test]
+    fn check_niche_opt() {
+        assert_eq!(core::mem::size_of::<SmolStr>(), core::mem::size_of::<Option<SmolStr>>());
+    }
 
     #[test]
     fn check_round_trip() {
